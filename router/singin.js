@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
-const Expense = require('../models/data')
+const {Expense} = require('../models/data')
 const bcrypt = require('bcrypt');
 
 router.get('/login', (req, res) => {
@@ -25,7 +25,7 @@ router.post('/login', async (req, res) => {
         }
 
 
-        res.status(200).json({ message: "Logged in successfully!" });
+        res.redirect('/expense');
 
     } catch (error) {
         console.error(error);

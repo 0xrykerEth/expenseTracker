@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
-const Expense = require('../models/data')
+const {Expense} = require('../models/data')
 const bcrypt = require('bcrypt'); 
 
 router.get('/signup', (req, res) => {

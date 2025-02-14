@@ -25,4 +25,31 @@ const Expense = sequelize.define('user', {
     timestamps: false
 });
 
-module.exports = Expense;
+const Spending = sequelize.define('spending', {
+    id : {
+        type : DataTypes.INTEGER,
+        autoIncrement : true,
+        primaryKey : true,
+    },
+    description : {
+        type : DataTypes.STRING,
+        allowNull: false,
+    },
+    amount : {
+        type : DataTypes.INTEGER,
+        allowNull : false,
+    },
+    types : {
+        type : DataTypes.STRING,
+        allowNull : false,
+    },
+    category : {
+        type : DataTypes.STRING,
+        allowNull : false
+    }
+}, {
+    tableName: 'spending',
+    timestamps: false
+})
+
+module.exports = {Expense, Spending};
