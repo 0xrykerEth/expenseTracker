@@ -1,24 +1,24 @@
 const { Sequelize, DataTypes } = require('sequelize');
-const sequelize = require('../utils/database')
+const sequelize = require('../utils/database');
 
-const Expense = sequelize.define('user', {
-    id : {
-        type : DataTypes.INTEGER,
+const User = sequelize.define('user', {
+    id: {
+        type: DataTypes.INTEGER,
         autoIncrement: true,
         primaryKey: true
     },
-    name : {
+    name: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    email : {
+    email: {
         type: DataTypes.STRING,
         allowNull: false,
         unique: true
     },
-    password : {
+    password: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: false
     }
 }, {
     tableName: 'user',
@@ -26,30 +26,41 @@ const Expense = sequelize.define('user', {
 });
 
 const Spending = sequelize.define('spending', {
-    id : {
-        type : DataTypes.INTEGER,
-        autoIncrement : true,
-        primaryKey : true,
+    id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true
     },
-    description : {
-        type : DataTypes.STRING,
+    description: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    amount: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
+    types: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    category: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    userId: {  
+        type: DataTypes.INTEGER,
         allowNull: false,
-    },
-    amount : {
-        type : DataTypes.INTEGER,
-        allowNull : false,
-    },
-    types : {
-        type : DataTypes.STRING,
-        allowNull : false,
-    },
-    category : {
-        type : DataTypes.STRING,
-        allowNull : false
+        references: {
+            model: User,
+            key: 'id'
+        }
     }
 }, {
     tableName: 'spending',
     timestamps: false
-})
+});
 
-module.exports = {Expense, Spending};
+User.hasMany(Spending, { foreignKey: 'userId' });
+Spending.belongsTo(User, { foreignKey: 'userId' });
+
+module.exports = { User, Spending };
