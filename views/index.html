@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CashFree Payment</title>
+    <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+</head>
+<body>
+    <h1>Cashfree Payment</h1>
+    <form action="/pay" method="post">
+        <label for="email" name ='email'>Enter Your Id and phone number to pay</label>
+        <input type="text" name="customer_id">
+        <input type="text" name="customer_phone">
+        <button type="submit">Click to Pay</button>
+    </form>
+</body>
+</html>
