@@ -4,7 +4,7 @@ const SibApiV3Sdk = require('sib-api-v3-sdk');
 const app = express();
 const router = express.Router();
 
-//const text = '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'
+
 
 const apiKey =  SibApiV3Sdk.ApiClient.instance.authentications['api-key'];
 //apiKey.apiKey =
