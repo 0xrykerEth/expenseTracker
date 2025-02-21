@@ -90,6 +90,32 @@ const Order = sequelize.define('ordertable', {
     timestamps: false
 });
 
+const PasswordReset = sequelize.define('forgotpassword', {
+    id: {
+        type: DataTypes.UUID,
+        primaryKey: true,
+        allowNull: false,
+        defaultValue: DataTypes.UUIDV4
+    },
+    userId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: 'user',
+            key: 'id'
+        }
+    },
+    isActive: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
+    },
+    expiresby: DataTypes.DATE
+}, {
+    tableName: 'forgotpassword',
+    timestamps: false
+});
+
+
 
 User.hasMany(Spending, { foreignKey: 'userId' });
 Spending.belongsTo(User, { foreignKey: 'userId' });
@@ -97,4 +123,7 @@ Spending.belongsTo(User, { foreignKey: 'userId' });
 User.hasMany(Order, { foreignKey: 'userId' });
 Order.belongsTo(User, { foreignKey: 'userId' })
 
-module.exports = { User, Spending , Order};
+User.hasMany(PasswordReset, { foreignKey: 'userId' });
+PasswordReset.belongsTo(User, { foreignKey: 'userId' })
+
+module.exports = { User, Spending , Order,PasswordReset};
