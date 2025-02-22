@@ -14,10 +14,12 @@ const path = require('path');
 const premium = require('./router/premium.js')
 const check = require('./router/check-premium.js')
 const forgot = require('./router/forgot.js')
+const report = require('./router/report.js');
 
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
+app.use(report)
 app.use(forgot)
 app.use(check);
 app.use(premium);

@@ -61,7 +61,8 @@ const Spending = sequelize.define('spending', {
     }
 }, {
     tableName: 'spending',
-    timestamps: false
+    timestamps: true,
+    updatedAt: false
 });
 
 const Order = sequelize.define('ordertable', {
