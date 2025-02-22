@@ -6,7 +6,7 @@ const auth = require('../utils/auth');
 router.get('/added', auth, async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = 5;
+        const limit = parseInt(req.query.limit) || 5; // Default limit is 5
         const offset = (page - 1) * limit;
 
         const totalExpenses = await Spending.count({
@@ -59,31 +59,19 @@ router.get('/added', auth, async (req, res) => {
                         border-radius: 8px;
                         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
                     }
-                    h2 {
-                        text-align: center;
-                    }
                     table {
                         width: 100%;
                         border-collapse: collapse;
                         margin-top: 20px;
                     }
-                    table, th, td {
-                        border: 1px solid #ddd;
-                    }
                     th, td {
                         padding: 10px;
+                        border: 1px solid #ddd;
                         text-align: left;
                     }
                     th {
                         background-color: #007bff;
                         color: white;
-                    }
-                    .delete-btn {
-                        background-color: red;
-                        color: white;
-                        border: none;
-                        padding: 5px 10px;
-                        cursor: pointer;
                     }
                     .pagination {
                         display: flex;
@@ -102,11 +90,36 @@ router.get('/added', auth, async (req, res) => {
                         background: #ccc;
                         pointer-events: none;
                     }
+                    .dropdown {
+                        margin-bottom: 10px;
+                        display: flex;
+                        justify-content: center;
+                    }
+                    .dropdown select {
+                        padding: 5px;
+                        font-size: 16px;
+                    }
                 </style>
+                <script>
+                    function changeLimit() {
+                        const limit = document.getElementById("limitSelect").value;
+                        window.location.href = "/added?page=1&limit=" + limit;
+                    }
+                </script>
             </head>
             <body>
                 <div class="container">
                     <h2>Expense List</h2>
+                    <div class="dropdown">
+                        <label for="limitSelect">Rows per page: </label>
+                        <select id="limitSelect" onchange="changeLimit()">
+                            <option value="5" ${limit == 5 ? 'selected' : ''}>5</option>
+                            <option value="10" ${limit == 10 ? 'selected' : ''}>10</option>
+                            <option value="25" ${limit == 25 ? 'selected' : ''}>25</option>
+                            <option value="50" ${limit == 50 ? 'selected' : ''}>50</option>
+                            <option value="100" ${limit == 100 ? 'selected' : ''}>100</option>
+                        </select>
+                    </div>
                     <table>
                         <thead>
                             <tr>
@@ -123,12 +136,8 @@ router.get('/added', auth, async (req, res) => {
                         </tbody>
                     </table>
                     <div class="pagination">
-                        <a href="/added?page=${page - 1}" class="${page <= 1 ? 'disabled' : ''}">Previous</a>
-                        <a href="/added?page=${page + 1}" class="${page >= totalPages ? 'disabled' : ''}">Next</a>
-                    </div>
-                    <div class="buttons">
-                        <a href="/expense" class="btn add-btn">Add More Expenses</a>
-                        <a href="/login" class="btn logout-btn">Logout</a>
+                        <a href="/added?page=${page - 1}&limit=${limit}" class="${page <= 1 ? 'disabled' : ''}">Previous</a>
+                        <a href="/added?page=${page + 1}&limit=${limit}" class="${page >= totalPages ? 'disabled' : ''}">Next</a>
                     </div>
                 </div>
             </body>
@@ -139,5 +148,6 @@ router.get('/added', auth, async (req, res) => {
         res.status(500).send(`<h1>Error fetching expenses</h1>`);
     }
 });
+
 
 module.exports = router;
