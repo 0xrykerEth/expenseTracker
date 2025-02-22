@@ -1,14 +1,24 @@
 const express = require('express');
 const router = express.Router();
-const {Spending} = require('../models/data');
-const auth = require('../utils/auth'); 
-
+const { Spending } = require('../models/data');
+const auth = require('../utils/auth');
 
 router.get('/added', auth, async (req, res) => {
     try {
-        // Only fetch expenses belonging to the logged-in user
-        const expenses = await Spending.findAll({
+        const page = parseInt(req.query.page) || 1;
+        const limit = 5;
+        const offset = (page - 1) * limit;
+
+        const totalExpenses = await Spending.count({
             where: { userId: req.user.id }
+        });
+
+        const totalPages = Math.ceil(totalExpenses / limit);
+
+        const expenses = await Spending.findAll({
+            where: { userId: req.user.id },
+            limit,
+            offset
         });
 
         let tableRows = expenses.map(expense => `
@@ -75,6 +85,23 @@ router.get('/added', auth, async (req, res) => {
                         padding: 5px 10px;
                         cursor: pointer;
                     }
+                    .pagination {
+                        display: flex;
+                        justify-content: center;
+                        margin-top: 20px;
+                    }
+                    .pagination a {
+                        margin: 0 5px;
+                        padding: 8px 12px;
+                        background: #007bff;
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 5px;
+                    }
+                    .pagination a.disabled {
+                        background: #ccc;
+                        pointer-events: none;
+                    }
                 </style>
             </head>
             <body>
@@ -95,7 +122,11 @@ router.get('/added', auth, async (req, res) => {
                             ${tableRows}
                         </tbody>
                     </table>
-                      <div class="buttons">
+                    <div class="pagination">
+                        <a href="/added?page=${page - 1}" class="${page <= 1 ? 'disabled' : ''}">Previous</a>
+                        <a href="/added?page=${page + 1}" class="${page >= totalPages ? 'disabled' : ''}">Next</a>
+                    </div>
+                    <div class="buttons">
                         <a href="/expense" class="btn add-btn">Add More Expenses</a>
                         <a href="/login" class="btn logout-btn">Logout</a>
                     </div>
@@ -108,79 +139,5 @@ router.get('/added', auth, async (req, res) => {
         res.status(500).send(`<h1>Error fetching expenses</h1>`);
     }
 });
-
-router.post('/expense/delete', auth, async (req, res) => {
-    try {
-        const { id } = req.body;
-        
-        // First find the expense
-        const expense = await Spending.findOne({ 
-            where: { 
-                id: id,
-            }
-        });
-
-        // Check if expense exists
-        if (!expense) {
-            return res.status(404).send(`
-                <script>
-                    alert('Expense not found');
-                    window.location.href = '/added';
-                </script>
-            `);
-        }
-
-        // Check if the expense belongs to the logged-in user
-        if (expense.userId !== req.user.id) {
-            return res.status(403).send(`
-                <script>
-                    alert('You are not authorized to delete this expense');
-                    window.location.href = '/added';
-                </script>
-            `);
-        }
-
-        // If all checks pass, delete the expense
-        await Spending.destroy({ 
-            where: { 
-                id: id,
-                userId: req.user.id 
-            } 
-        });
-        
-        return res.redirect('/added');
-    } catch (error) {
-        console.log(error);
-        return res.status(500).send(`<h1>Error deleting expense</h1>`);
-    }
-});
-
-// router.post('/expense/delete', auth, async (req, res) => {
-//     try {
-//         const { id } = req.body;
-//         console.log(id);
-//         const expense = await Spending.findOne({ where: { id } });
-
-//         if (!expense) {
-//             return res.status(404).send('<h1>Expense not found</h1>');
-//         }
-
-//         if (expense.userId !== req.user.id) {
-//             return res.send(`
-//                 <script>
-//                     alert('Unauthorized to delete this expense');
-//                     window.location.href = '/added';
-//                 </script>
-//             `);
-//         }
-
-//         await expense.destroy();
-
-//         res.redirect('/added');
-//     } catch (error) {
-//         console.log(error);
-//         res.status(500).send('<h1>Error deleting expense</h1>');
-//     }
-// });
 
 module.exports = router;
