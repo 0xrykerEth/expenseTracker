@@ -2,9 +2,11 @@ const express = require('express');
 const { Cashfree } = require("cashfree-pg");
 const router = express.Router();
 const {Order,User} = require('../models/data')
+require('dotenv').config();
 
-Cashfree.XClientId = "TEST430329ae80e0f32e41a393d78b923034";
-Cashfree.XClientSecret = "TESTaf195616268bd6202eeb3bf8dc458956e7192a85";
+
+Cashfree.XClientId = process.env.clientId;
+Cashfree.XClientSecret = process.env.clientSecret;
 Cashfree.XEnvironment = Cashfree.Environment.SANDBOX;
 
 router.get("/status/:orderId", async (req, res) => {

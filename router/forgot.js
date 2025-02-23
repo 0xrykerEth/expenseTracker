@@ -4,14 +4,16 @@ const SibApiV3Sdk = require('sib-api-v3-sdk');
 const router = express.Router();
 const {User,PasswordReset} = require('../models/data');
 const { v4: uuidv4 } = require('uuid');
+require('dotenv').config();
 
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
 const apiKey =  SibApiV3Sdk.ApiClient.instance.authentications['api-key'];
-apiKey.apiKey = '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';
+apiKey.apiKey = process.env.emailKey;
 
 
 router.get('/forgot',(req,res) => {
     res.sendFile(path.join(__dirname,'../','views','forgot.html'))
+
 })
 
 router.post('/forgot', async (req, res) => {
