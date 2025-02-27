@@ -3,6 +3,15 @@ const router = express.Router();
 const { Spending } = require('../models/data');
 const auth = require('../utils/auth');
 const { Op } = require('sequelize');
+const stream = require('stream');
+const bufferStream = require('buffer')
+const fs = require('fs')
+const path = require('path');
+const fastCsv = require('fast-csv');
+const AWS = require('aws-sdk');
+
+
+
 
 router.get('/report', auth, async (req, res) => {
     try {
@@ -27,9 +36,19 @@ router.get('/report', auth, async (req, res) => {
             attributes: ['types', 'amount', 'createdAt']
         });
 
+
+        const groupedMonthlyExpenses = monthlyExpenses.reduce((acc, exp) => {
+            const monthKey = new Date(exp.createdAt).toISOString().slice(0, 7);
+            if (!acc[monthKey]) {
+                acc[monthKey] = { month: monthKey, totalAmount: 0 };
+            }
+            acc[monthKey].totalAmount += exp.amount;
+            return acc;
+        }, {});        
+
         let totalIncome = 0;
         let totalExpense = 0;
-
+    
         yearlyExpenses.forEach(exp => {
             if (exp.types.toLowerCase() === 'income') {
                 totalIncome += exp.amount;
@@ -99,7 +118,15 @@ router.get('/report', auth, async (req, res) => {
                 </style>
             </head>
             <body>
-                <button onclick="window.print()">Print as PDF</button>
+                 <form id="downloadForm">
+                    <label for="type">Type</label>
+                    <select id="type" name="download" required>
+                        <option value="day">DAY</option>
+                        <option value="month">MONTH</option>
+                        <option value="year">YEAR</option>
+                    </select>
+                    <button type="submit">Click to download</button>
+                </form>
 
                 <div class="container">
                     <h2>Day to Day Expenses</h2>
@@ -124,25 +151,24 @@ router.get('/report', auth, async (req, res) => {
                         </tbody>
                     </table>
 
-                    <h2>Monthly Report</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Types</th>
-                                <th>Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${monthlyExpenses.map(exp => `
-                                <tr>
-                                    <td>${new Date(exp.createdAt).toLocaleDateString()}</td>
-                                    <td>${exp.types}</td>
-                                    <td>${exp.amount}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
+<h2>Monthly Report</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Month</th>
+            <th>Total Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+        ${Object.values(groupedMonthlyExpenses).map(({ month, totalAmount }) => `
+            <tr>
+                <td>${new Date(month + '-01').toLocaleString('default', { month: 'long', year: 'numeric' })}</td>
+                <td>${totalAmount}</td>
+            </tr>
+        `).join('')}
+    </tbody>
+</table>
+
 
                     <h2>Yearly Report</h2>
                     <table>
@@ -188,6 +214,13 @@ router.get('/report', auth, async (req, res) => {
                         </tbody>
                     </table>
                 </div>
+                 <script>
+                    document.getElementById("downloadForm").addEventListener("submit", function(event) {
+                        event.preventDefault();
+                        const type = document.getElementById("type").value;
+                        window.location.href = "/download/" + type;
+                    });
+                </script>
             </body>
             </html>
         `);
@@ -197,4 +230,101 @@ router.get('/report', auth, async (req, res) => {
     }
 });
 
+const s3 = new AWS.S3({
+    
+    accessKeyId: 'AKIAX5ZI6NPQHSDIDF4E',
+    secretAccessKey: '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',
+    region: 'eu-north-1',
+})
+
+router.get('/download/:type', auth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { type } = req.params;
+        const now = new Date();
+
+        let startDate;
+        if (type === 'month') {
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        } else if (type === 'year') {
+            startDate = new Date(now.getFullYear(), 0, 1);
+        } else {
+            return res.status(400).json({ message: 'Invalid type' });
+        }
+
+        const expenses = await Spending.findAll({
+            where: { userId, createdAt: { [Op.gte]: startDate } },
+            attributes: ['types', 'amount', 'createdAt']
+        });
+
+        if (expenses.length === 0) {
+            return res.status(404).json({ message: 'No expenses found' });
+        }
+
+        let csvData = [];
+        
+        if (type === 'month') {
+            const groupedMonthlyExpenses = expenses.reduce((acc, exp) => {
+                const monthKey = new Date(exp.createdAt).toISOString().slice(0, 7);
+                if (!acc[monthKey]) {
+                    acc[monthKey] = { month: monthKey, totalAmount: 0 };
+                }
+                acc[monthKey].totalAmount += exp.amount;
+                return acc;
+            }, {});
+
+            csvData = Object.values(groupedMonthlyExpenses);
+        } else if (type === 'year') {
+            let totalIncome = 0, totalExpense = 0;
+
+            expenses.forEach(exp => {
+                if (exp.types.toLowerCase() === 'income') {
+                    totalIncome += exp.amount;
+                } else {
+                    totalExpense += exp.amount;
+                }
+            });
+
+            csvData = [{ year: now.getFullYear(), totalIncome, totalExpense }];
+        }
+
+        const csvStream = fastCsv.format({ headers: true });
+        const bufferStream = new stream.PassThrough();
+
+        csvStream.pipe(bufferStream);
+        csvData.forEach(row => csvStream.write(row));
+        csvStream.end();
+
+        const fileName = `expenses_${userId}_${type}_${Date.now()}.csv`;
+
+        const uploadParams = {
+            Bucket: 'expense11tracker',
+            Key: `reports/${fileName}`,
+            Body: bufferStream,
+            ContentType: 'text/csv',
+            ACL: 'private'
+        };
+
+        s3.upload(uploadParams, async (err, data) => {
+            if (err) {
+                console.error('S3 Upload Error:', err);
+                return res.status(500).json({ message: 'Error uploading to S3' });
+            }
+
+            const signedUrl = s3.getSignedUrl('getObject', {
+                Bucket: 'expense11tracker',
+                Key: `reports/${fileName}`,
+                Expires: 300
+            });
+
+            return res.json({ downloadUrl: signedUrl });
+        });
+
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
+
 module.exports = router;
+

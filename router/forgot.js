@@ -8,7 +8,7 @@ require('dotenv').config();
 
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
 const apiKey =  SibApiV3Sdk.ApiClient.instance.authentications['api-key'];
-apiKey.apiKey = process.env.emailKey;
+apiKey.apiKey = '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';
 
 
 router.get('/forgot',(req,res) => {

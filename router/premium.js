@@ -3,9 +3,14 @@ const router = express.Router();
 const { User, Spending } = require('../models/data');
 const auth = require('../utils/auth');
 const sequelize = require('../utils/database');
+const { where } = require('sequelize');
 
 router.get('/premium', auth, async (req, res) => {
     try {
+        const user = await User.findOne({ where: { id: req.user.id } });
+        if (!user || !user.isPremium){
+            res.send('user is not premium user')
+        }
         const leaderboard = await User.findAll({
             attributes: ['id', 'name', [sequelize.fn('SUM', sequelize.col('spendings.amount')), 'totalSpent']],
             include: [{
